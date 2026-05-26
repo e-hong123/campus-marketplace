@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="item-detail">
+    <div class="item-image">
+        <img src="{{ url_for('static', filename='uploads/' + item.image_path) }}" alt="{{ item.title }}">
+    </div>
+    <div class="item-info">
+        <h1>{{ item.title }}</h1>
+        <p class="price">¥{{ item.price }}</p>
+        <a href="{{ url_for(
+        'price_trend',
+        category=item.category,
+        current_item_id=item.id
+        ) }}"
+        class="btn">
+
+        查看同类商品价格走势
+
+        </a>
+        <p class="category">分类：{{ item.category }}</p>
+        <p class="seller">卖家：{{ item.seller_username }}</p>
+
+        {% if show_contact %}
+            <div class="contact-info">
+                <p><i class="fas fa-phone"></i> 联系电话：{{ item.seller_phone }}</p>
+                <p><i class="fab fa-weixin"></i> 微信号：{{ item.seller_wechat if item.seller_wechat else '未填写' }}</p>
+                <p><i class="fab fa-qq"></i> QQ号：{{ item.seller_qq if item.seller_qq else '未填写' }}</p>
+            </div>
+        {% else %}
+            <p class="contact-hint">点击"咨询卖家"查看联系方式</p>
+        {% endif %}
+
+        <p class="publish-time">发布时间：{{ item.create_time }}</p>
+        <div class="description">
+            <h3>商品描述</h3>
+            <p>{{ item.description }}</p>
+        </div>
+        <div class="action-buttons">
+            {% if not is_admin and not item.is_sold and item.is_active %}
+                <button class="btn btn-chat icon-btn" title="在线聊天" onclick="startChat({{ item.seller_id }})">
+                    <i class="fas fa-comment-dots"></i>
+                </button>
+                <button class="btn btn-consult icon-btn" title="咨询卖家" onclick="window.location.href='{{ url_for('get_seller_contact', item_id=item.id) }}'">
+                    <i class="fas fa-comments"></i>
+                </button>
+                <button class="btn btn-report icon-btn" title="举报" onclick="showReportModal()">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </button>
+                <button class="btn btn-cart" onclick="addToCart({{ item.id }})">
+                    <i class="fas fa-shopping-cart"></i> 加入购物车
+                </button>
+                <button class="btn btn-buy" onclick="buyNow({{ item.id }})">
+                    <i class="fas fa-shopping-bag"></i> 立即购买
+                </button>
+
+            {% elif is_admin %}
+                <!-- 管理员可以显示置顶/下架按钮 -->
+                <button class="btn btn-top" onclick="toggleTop({{ item.id }})">{% if item.is_top %}取消置顶{% else %}置顶{% endif %}</button>
+                <button class="btn btn-danger" onclick="offShelf({{ item.id }})">下架</button>
+            {% elif item.is_sold %}
+                <div class="sold-tag">商品已售出</div>
+            {% elif not item.is_active %}
+                <div class="sold-tag">商品已下架</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 举报弹窗（不变） -->
+<div id="reportModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeReportModal()">&times;</span>
+        <h2>举报商品</h2>
+        <form id="reportForm">
+            <div class="form-group">
+                <label>举报原因</label>
+                <textarea name="reason" rows="4" required placeholder="请详细描述举报原因..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-danger">提交举报</button>
+        </form>
+    </div>
+</div>
+
+<!-- 图片放大查看模态框 -->
+<div id="imageModal" class="image-modal">
+    <span class="image-modal-close">&times;</span>
+    <img class="image-modal-content" id="modalImage">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function startChat(sellerId) {
+    // 直接跳转到聊天列表页，然后自动选择该联系人
+    // 传递卖家ID和卖家用户名
+    const sellerUsername = '{{ item.seller_username }}';
+    window.location.href = `/chat/list?target_user=${sellerId}&target_username=${encodeURIComponent(sellerUsername)}`;
+}
+
+function addToCart(itemId) {
+    axios.post(`/add_to_cart/${itemId}`)
+        .then(response => {
+            alert(response.data.message);
+            if (response.data.success) {
+                const cartFloat = document.querySelector('.cart-float');
+                let cartBadge = cartFloat.querySelector('.cart-badge');
+                if (!cartBadge) {
+                    cartBadge = document.createElement('span');
+                    cartBadge.className = 'cart-badge';
+                    cartFloat.appendChild(cartBadge);
+                }
+                cartBadge.textContent = response.data.cart_count;
+                cartBadge.style.display = 'inline';
+            }
+        })
+        .catch(error => {
+            alert('操作失败，请稍后重试');
+        });
+}
+
+function buyNow(itemId) {
+    if (confirm('确定要购买这件商品吗？')) {
+        axios.post(`/buy_now/${itemId}`)
+            .then(response => {
+                alert(response.data.message);
+                if (response.data.success) window.location.reload();
+            })
+            .catch(error => {
+                alert('操作失败，请稍后重试');
+            });
+    }
+}
+
+function showReportModal() {
+    document.getElementById('reportModal').style.display = 'block';
+}
+
+function closeReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+}
+
+document.getElementById('reportForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    axios.post(`/report/{{ item.id }}`, formData)
+        .then(response => {
+            alert(response.data.message);
+            closeReportModal();
+        })
+        .catch(error => {
+            alert('提交失败，请稍后重试');
+        });
+});
+
+window.onclick = function(event) {
+    const modal = document.getElementById('reportModal');
+    if (event.target == modal) closeReportModal();
+}
+
+// 图片放大查看
+const modal = document.getElementById('imageModal');
+const modalImg = document.getElementById('modalImage');
+const itemImg = document.querySelector('.item-image img');
+const closeBtn = document.querySelector('.image-modal-close');
+
+itemImg.onclick = function() {
+    modal.style.display = 'flex';
+    modalImg.src = this.src;
+}
+closeBtn.onclick = function() {
+    modal.style.display = 'none';
+}
+modal.onclick = function(e) {
+    if (e.target == modal) modal.style.display = 'none';
+}
+document.onkeydown = function(e) {
+    if (e.key === 'Escape' && modal.style.display === 'flex') modal.style.display = 'none';
+}
+</script>
+{% endblock %}

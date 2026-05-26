@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="item-detail admin-detail">
+    <div class="item-image">
+        <img src="{{ url_for('static', filename='uploads/' + item.image_path) }}" alt="{{ item.title }}">
+    </div>
+    <div class="item-info">
+        <div class="info-top">
+            <h1>{{ item.title }}</h1>
+            <p class="price">¥{{ item.price }}</p>
+            <p>分类：{{ item.category }}</p>
+            <p>卖家：{{ item.seller_username }}</p>
+            <p>联系方式：手机 {{ item.seller_phone }} | 微信 {{ item.seller_wechat or '未填' }} | QQ {{ item.seller_qq or '未填' }}</p>
+            <p>发布时间：{{ item.create_time }}</p>
+            <div class="description">
+                <h3>商品描述</h3>
+                <p>{{ item.description }}</p>
+            </div>
+        </div>
+        <div class="admin-actions">
+            <button class="btn btn-top {% if not item.is_active %}disabled{% endif %}"
+                    onclick="{% if item.is_active %}toggleTop({{ item.id }}){% else %}alert('商品已下架，无法置顶'){% endif %}"
+                    {% if not item.is_active %}disabled{% endif %}>
+                {% if item.is_top %}取消置顶{% else %}置顶{% endif %}
+            </button>
+            {% if item.is_active %}
+                <button class="btn btn-danger" onclick="offShelf({{ item.id }})">下架</button>
+            {% else %}
+                <button class="btn btn-warning" onclick="relistItem({{ item.id }})">重新上架</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* 商品详情页布局修改为等高水平对齐，且按钮始终在底部 */
+.item-detail.admin-detail {
+    display: flex;
+    gap: 2rem;
+    align-items: stretch;  /* 左右高度一致 */
+}
+.item-detail.admin-detail .item-image {
+    flex: 1;
+    aspect-ratio: 1/1;
+    overflow: hidden;
+    border-radius: 8px;
+}
+.item-detail.admin-detail .item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.item-detail.admin-detail .item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;  /* 让顶部内容在上，按钮在下 */
+}
+.info-top {
+    flex: 1;  /* 占据剩余空间 */
+}
+.admin-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1rem;
+}
+.btn-top {
+    background-color: #f39c12;
+    color: white;
+}
+.btn-top:hover:not(:disabled) {
+    background-color: #e67e22;
+}
+.btn-top.disabled, .btn-top:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+.btn-warning {
+    background-color: #f39c12;
+    color: white;
+}
+.btn-warning:hover {
+    background-color: #e67e22;
+}
+</style>
+
+<script>
+function toggleTop(itemId) {
+    axios.post(`/admin/item/${itemId}/top`)
+        .then(res => { alert(res.data.message); if (res.data.success) location.reload(); })
+        .catch(() => alert('操作失败'));
+}
+function offShelf(itemId) {
+    let reason = prompt('请输入下架原因：');
+    if (reason === null) return;
+    axios.post(`/admin/item/${itemId}/off_shelf`, { reason: reason })
+        .then(res => { alert(res.data.message); if (res.data.success) location.reload(); })
+        .catch(() => alert('操作失败'));
+}
+function relistItem(itemId) {
+    if (confirm('确定要重新上架这件商品吗？')) {
+        axios.post(`/admin/item/${itemId}/relist`)
+            .then(res => { alert(res.data.message); if (res.data.success) location.reload(); })
+            .catch(() => alert('操作失败'));
+    }
+}
+</script>
+{% endblock %}

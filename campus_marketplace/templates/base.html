@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园二手交易平台</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏必须完整 -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="logo">校园二手市场</a>
+            <div class="nav-links">
+                {% if session.user_id %}
+                    <span class="welcome-text">欢迎，{{ session.username }}</span>
+                    {% if not session.get('is_admin') %}
+                        <!-- 普通用户菜单 -->
+                        <a href="{{ url_for('index') }}">首页</a>
+                        <a href="{{ url_for('publish') }}">发布商品</a>
+                        <a href="{{ url_for('my_profile') }}">我的</a>
+                        <a href="{{ url_for('my_notifications') }}" class="notif-icon">
+                            <i class="fas fa-bell"></i>
+                            {% if notif_count > 0 %}
+                                <span class="notif-badge">{{ notif_count }}</span>
+                            {% endif %}
+                        </a>
+                    {% else %}
+                        <!-- 管理员菜单 -->
+                        <a href="{{ url_for('admin_dashboard') }}">管理后台</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}">退出</a>
+                {% else %}
+                    <a href="{{ url_for('index') }}">首页</a>
+                    <a href="{{ url_for('login') }}">登录</a>
+                    <a href="{{ url_for('register') }}">注册</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- 全局购物车图标（管理员不显示购物车） -->
+    {% if request.path != '/cart' and not request.path.startswith('/my') and not session.get('is_admin') %}
+        <a href="{{ url_for('chat_list') }}" class="chat-float" style="right: 100px;" onclick="handleChatClick(event)">
+            <i class="fas fa-comment-dots"></i>
+            <span id="chatBadge" class="chat-badge" style="display: none;">0</span>
+        </a>
+        <a href="{{ url_for('cart') }}" class="cart-float">
+            <i class="fas fa-shopping-cart"></i>
+            {% if cart_count > 0 %}
+                <span class="cart-badge">{{ cart_count }}</span>
+            {% endif %}
+        </a>
+    {% endif %}
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    {% block scripts %}{% endblock %}
+
+<script>
+    // 自动隐藏 flash 消息（登录、操作提示等）
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(function(msg) {
+            setTimeout(function() {
+                // 添加淡出效果
+                msg.style.transition = 'opacity 0.5s ease';
+                msg.style.opacity = '0';
+                // 淡出后移除元素
+                setTimeout(function() {
+                    if (msg.parentNode) msg.remove();
+                }, 500);
+            }, 2000);  // 3秒后开始淡出
+        });
+        
+        // 获取并更新未读聊天消息数量
+        {% if session.user_id and not session.get('is_admin') %}
+        function updateChatBadge() {
+            fetch('/api/chat/unread_count')
+                .then(response => response.json())
+                .then(data => {
+                    const chatBadge = document.getElementById('chatBadge');
+                    if (chatBadge && data.count > 0) {
+                        chatBadge.textContent = data.count;
+                        chatBadge.style.display = 'inline';
+                    } else if (chatBadge) {
+                        chatBadge.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('获取未读消息失败:', error));
+        }
+        
+        // 标记所有消息为已读（点击聊天图标时调用）
+        function markAllAsRead() {
+            // 立即隐藏徽章（先更新UI）
+            const chatBadge = document.getElementById('chatBadge');
+            if (chatBadge) {
+                chatBadge.style.display = 'none';
+                chatBadge.textContent = '0';
+            }
+            
+            // 然后异步调用API标记为已读
+            fetch('/api/chat/mark_all_read')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log(`已标记 ${data.marked_count} 条消息为已读`);
+                    }
+                })
+                .catch(error => console.error('标记已读失败:', error));
+        }
+        
+        // 处理聊天图标点击事件
+        function handleChatClick(event) {
+            // 先立即更新UI，再跳转
+            markAllAsRead();
+            // 不阻止默认行为，直接跳转
+        }
+        
+        // 初始加载
+        updateChatBadge();
+        
+        // 每30秒更新一次
+        setInterval(updateChatBadge, 30000);
+        
+        // 监听其他页面的更新通知（跨标签页）
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'chatBadgeUpdate') {
+                console.log('收到新消息，更新徽章');
+                updateChatBadge();
+            }
+        });
+        
+        // 监听来自子窗口的 postMessage 通知
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'updateChatBadge') {
+                console.log('收到子窗口消息，更新徽章');
+                updateChatBadge();
+            }
+        });
+        {% endif %}
+    });
+</script>
+</body>
+</html>

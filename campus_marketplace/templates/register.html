@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-form">
+    <h2>用户注册</h2>
+
+    {% if errors %}
+        <div class="error-messages">
+            {% for error in errors %}
+                <div class="error-message">{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        <div class="form-group">
+            <label>用户名（3-20位字母数字下划线）</label>
+            <input type="text" name="username" value="{{ username or '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>手机号</label>
+            <input type="tel" name="phone" value="{{ phone or '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>微信号（选填，与QQ号至少填一个）</label>
+            <input type="text" name="wechat" value="{{ wechat or '' }}" placeholder="例如：zhangsan123">
+        </div>
+        <div class="form-group">
+            <label>QQ号（选填，与微信号至少填一个）</label>
+            <input type="text" name="qq" value="{{ qq or '' }}" placeholder="例如：123456789">
+        </div>
+        <div class="form-group">
+            <label>密码（6-20位）</label>
+            <input type="password" name="password" value="" required>
+        </div>
+        <div class="form-group">
+            <label>确认密码</label>
+            <input type="password" name="confirm_password" value="" required>
+        </div>
+        <button type="submit" class="btn">注册</button>
+    </form>
+    <p>已有账号？<a href="{{ url_for('login') }}">立即登录</a></p>
+</div>
+{% endblock %}

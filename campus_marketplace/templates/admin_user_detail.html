@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>用户：{{ user.username }}</h1>
+<p>手机：{{ user.phone }}</p>
+<p>微信号：{{ user.wechat or '未填' }}</p>
+<p>QQ号：{{ user.qq or '未填' }}</p>
+<h2>发布的商品</h2>
+<div class="items-grid">
+    {% for item in items %}
+    <div class="item-card">
+        <a href="{{ url_for('admin_item_detail', item_id=item.id) }}">
+            <img src="{{ url_for('static', filename='uploads/' + item.image_path) }}">
+            <div class="item-info">
+                <h3>{{ item.title }}</h3>
+                <p>¥{{ item.price }}</p>
+                <p>状态：{% if not item.is_active %}已下架{% elif item.is_sold %}已售出{% else %}在售{% endif %}</p>
+            </div>
+        </a>
+    </div>
+    {% else %}
+    <p>暂无商品</p>
+    {% endfor %}
+</div>
+{% endblock %}

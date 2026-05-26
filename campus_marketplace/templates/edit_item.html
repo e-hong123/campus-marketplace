@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="publish-form">
+    <h2>编辑商品</h2>
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>商品标题</label>
+            <input type="text" name="title" value="{{ item.title }}" required>
+        </div>
+        <div class="form-group">
+            <label>商品描述</label>
+            <textarea name="description" rows="5" required>{{ item.description }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>价格（元）</label>
+            <input type="number" step="0.01" name="price" value="{{ item.price }}" required>
+        </div>
+        <div class="form-group">
+            <label>商品分类</label>
+            <select name="category" required>
+                <option value="电子产品" {% if item.category =='电子产品' %}selected{% endif %}>电子产品</option>
+                <option value="书籍教材" {% if item.category =='书籍教材' %}selected{% endif %}>书籍教材</option>
+                <option value="生活用品" {% if item.category =='生活用品' %}selected{% endif %}>生活用品</option>
+                <option value="运动器材" {% if item.category =='运动器材' %}selected{% endif %}>运动器材</option>
+                <option value="服饰鞋包" {% if item.category =='服饰鞋包' %}selected{% endif %}>服饰鞋包</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>当前图片</label>
+            <img src="{{ url_for('static', filename='uploads/' + item.image_path) }}" alt="{{ item.title }}" style="width: 200px; border-radius: 4px; margin-top: 0.5rem;">
+        </div>
+        <div class="form-group">
+            <label>更换图片（不选则保留原图片）</label>
+            <input type="file" name="image" accept="image/*">
+        </div>
+        <button type="submit" class="btn">保存修改</button>
+    </form>
+</div>
+{% endblock %}
