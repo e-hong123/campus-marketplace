@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-app {
+            display: flex;
+            height: 100vh;
+            background: white;
+        }
+
+        /* 左侧联系人列表 */
+        .contact-list {
+            width: 280px;
+            background: #2e2e2e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ddd;
+        }
+
+        .contact-header {
+            padding: 20px;
+            background: #3a3a3a;
+            border-bottom: 1px solid #444;
+        }
+
+        .contact-header h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .contacts {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .contact-item:hover {
+            background: #3a3a3a;
+        }
+
+        .contact-item.active {
+            background: #4a4a4a;
+        }
+
+        .contact-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .contact-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contact-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .contact-last-msg {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .contact-time {
+            font-size: 11px;
+            color: #666;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+
+        /* 右侧聊天区域 */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+        }
+
+        .chat-header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header h3 {
+            font-size: 16px;
+            color: #333;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            padding: 5px 10px;
+        }
+
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            justify-content: flex-end;
+        }
+
+        .message.received {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 60%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.sent .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 11px;
+            margin-top: 5px;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+        .chat-input-area {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .empty-chat {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            font-size: 16px;
+        }
+
+        .no-contact-selected {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .no-contact-selected i {
+            font-size: 80px;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-app">
+        <!-- 左侧联系人列表 -->
+        <div class="contact-list">
+            <div class="contact-header">
+                <h2><i class="fas fa-comments"></i> 消息</h2>
+                <div class="user-info">
+                    <span>当前用户: {{ session.username }}</span>
+                </div>
+            </div>
+            <div class="contacts" id="contactList">
+                {% if chat_users %}
+                    {% for chat in chat_users %}
+                        <div class="contact-item" 
+                             data-user-id="{{ chat.user.id }}"
+                             data-username="{{ chat.user.username }}"
+                             onclick="selectContact({{ chat.user.id }}, '{{ chat.user.username }}')">
+                            <div class="contact-avatar">
+                                {{ chat.user.username[0]|upper }}
+                            </div>
+                            <div class="contact-info">
+                                <div class="contact-name">{{ chat.user.username }}</div>
+                                <div class="contact-last-msg">
+                                    {% if chat.last_message.sender_id == session['user_id'] %}
+                                        我: 
+                                    {% endif %}
+                                    {{ chat.last_message.content[:30] }}{% if chat.last_message.content|length > 30 %}...{% endif %}
+                                </div>
+                            </div>
+                            <div class="contact-time">{{ chat.last_message.send_time.strftime('%m-%d') }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="padding: 40px 20px; text-align: center; color: #666;">
+                        <p>暂无联系人</p>
+                        <p style="font-size: 12px; margin-top: 10px;">去商品页联系卖家开始聊天吧</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 右侧聊天区域 -->
+        <div class="chat-area" id="chatArea">
+            <div class="empty-chat" id="emptyChat">
+                <div class="no-contact-selected">
+                    <i class="fas fa-comment-dots"></i>
+                    <p>选择一个联系人开始聊天</p>
+                </div>
+            </div>
+            
+            <div id="activeChat" style="display: none; flex-direction: column; height: 100%;">
+                <div class="chat-header">
+                    <div class="chat-header-info">
+                        <button class="back-btn" onclick="backToList()">
+                            <i class="fas fa-arrow-left"></i> 返回
+                        </button>
+                        <h3 id="chatPartnerName">联系人</h3>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <!-- 消息将在这里动态加载 -->
+                </div>
+
+                <div class="chat-input-area">
+                    <input type="text" 
+                           id="messageInput" 
+                           class="chat-input" 
+                           placeholder="输入消息..." 
+                           autocomplete="off">
+                    <button id="sendBtn" class="send-btn">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const currentUserId = {{ session['user_id'] }};
+        let currentChatUserId = null;
+        let currentChatUsername = '';
+
+        // 页面加载完成后，检查是否有目标用户
+        window.addEventListener('load', () => {
+            // 调试：显示联系人数量
+            const contactItems = document.querySelectorAll('.contact-item');
+            console.log('页面上的联系人数量:', contactItems.length);
+            contactItems.forEach((item, index) => {
+                console.log(`联系人${index + 1}:`, {
+                    userId: item.dataset.userId,
+                    username: item.dataset.username
+                });
+            });
+            
+            // 页面加载时，调用mark_all_read API标记所有消息为已读
+            fetch('/api/chat/mark_all_read')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log(`页面加载：已标记 ${data.marked_count} 条消息为已读`);
+                        // 通知其他页面更新徽章
+                        localStorage.setItem('chatBadgeUpdate', Date.now());
+                        if (window.opener) {
+                            window.opener.postMessage({type: 'updateChatBadge'}, '*');
+                        }
+                    }
+                })
+                .catch(error => console.error('页面加载时标记已读失败:', error));
+            
+            // 检查是否有目标用户需要自动打开聊天窗口
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUser = urlParams.get('target_user');
+            const targetUsername = urlParams.get('target_username');
+            
+            {% if target_user %}
+            // 如果有目标用户，延迟一下等待页面完全加载后自动选择该联系人
+            setTimeout(() => {
+                const targetContactItem = document.querySelector(`.contact-item[data-user-id="{{ target_user }}"]`);
+                if (targetContactItem) {
+                    console.log('自动选择联系人:', '{{ target_username }}', '(ID: {{ target_user }})');
+                    targetContactItem.click();
+                } else {
+                    console.warn('未找到目标联系人，可能需要先发送一条消息创建对话');
+                    // 如果找不到该联系人，说明还没有聊天记录，可以提示用户
+                    alert('还未与 {{ target_username }} 开始聊天，请先发送一条消息开始对话吧！');
+                }
+            }, 500);
+            {% endif %}
+        });
+
+        // 连接成功
+        socket.on('connect', () => {
+            console.log('WebSocket 连接成功');
+        });
+
+        // 接收消息
+        socket.on('receive_message', (data) => {
+            // 如果当前正在与该用户聊天，则显示消息
+            if (currentChatUserId && data.sender_id === currentChatUserId) {
+                appendMessage(data.content, 'received', data.send_time);
+                scrollToBottom();
+            } else {
+                // 否则刷新联系人列表
+                location.reload();
+            }
+            
+            // 通知其他页面更新徽章（通过 localStorage）
+            localStorage.setItem('chatBadgeUpdate', Date.now());
+        });
+
+        // 消息发送成功
+        socket.on('message_sent', (data) => {
+            if (currentChatUserId && data.receiver_id === currentChatUserId) {
+                appendMessage(data.content, 'sent', data.send_time);
+                scrollToBottom();
+            }
+        });
+
+        // 选择联系人
+        function selectContact(userId, username) {
+            currentChatUserId = userId;
+            currentChatUsername = username;
+            
+            // 更新UI
+            document.getElementById('emptyChat').style.display = 'none';
+            document.getElementById('activeChat').style.display = 'flex';
+            document.getElementById('chatPartnerName').textContent = username;
+            
+            // 高亮选中的联系人
+            document.querySelectorAll('.contact-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // 标记该联系人的消息为已读
+            markAsRead(userId);
+            
+            // 加载聊天记录
+            loadChatHistory(userId);
+        }
+
+        // 加载聊天历史
+        function loadChatHistory(userId) {
+            console.log('加载聊天记录，用户ID:', userId);
+            fetch(`/api/chat/history/${userId}`)
+                .then(response => {
+                    console.log('API 响应状态:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API 返回数据:', data);
+                    if (data.success) {
+                        const messagesContainer = document.getElementById('chatMessages');
+                        messagesContainer.innerHTML = '';
+                        
+                        console.log('消息数量:', data.messages.length);
+                        
+                        data.messages.forEach(msg => {
+                            console.log('消息内容:', msg.content);
+                            const type = msg.sender_id === currentUserId ? 'sent' : 'received';
+                            appendMessage(msg.content, type, msg.send_time);
+                        });
+                        
+                        scrollToBottom();
+                    } else {
+                        console.error('加载失败:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('加载聊天记录失败:', error);
+                });
+        }
+
+        // 标记消息为已读
+        function markAsRead(userId) {
+            fetch(`/api/chat/mark_read/${userId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log(`已标记 ${data.marked_count} 条消息为已读`);
+                        // 立即更新localStorage通知其他页面
+                        localStorage.setItem('chatBadgeUpdate', Date.now());
+                        // 尝试通知opener（如果有）
+                        if (window.opener) {
+                            window.opener.postMessage({type: 'updateChatBadge'}, '*');
+                        }
+                        // 也尝试通知parent（如果是iframe）
+                        if (window.parent && window.parent !== window) {
+                            window.parent.postMessage({type: 'updateChatBadge'}, '*');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('标记已读失败:', error);
+                });
+        }
+
+        // 添加消息到界面
+        function appendMessage(content, type, time) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const timeStr = time ? time.substring(11, 16) : new Date().toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${escapeHtml(content)}
+                    <div class="message-time">${timeStr}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+            
+            if (!content || !currentChatUserId) return;
+            
+            socket.emit('send_message', {
+                receiver_id: currentChatUserId,
+                content: content
+            });
+            
+            messageInput.value = '';
+            messageInput.focus();
+            
+            // 如果是第一次发送消息（聊天窗口是空白的），发送后刷新页面以更新联系人列表
+            const messagesContainer = document.getElementById('chatMessages');
+            const isEmptyChat = messagesContainer.querySelector('.fa-handshake');
+            if (isEmptyChat) {
+                console.log('第一条消息已发送，1秒后刷新页面以更新联系人列表');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 返回列表（移动端用）
+        function backToList() {
+            document.getElementById('emptyChat').style.display = 'flex';
+            document.getElementById('activeChat').style.display = 'none';
+            currentChatUserId = null;
+        }
+
+        // 事件监听
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // 页面关闭或离开时，通知父窗口更新徽章
+        window.addEventListener('beforeunload', () => {
+            if (window.opener) {
+                window.opener.postMessage({type: 'updateChatBadge'}, '*');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="search-bar">
+    <form method="get" action="{{ url_for('index') }}">
+        <input type="text" name="keyword" placeholder="搜索商品..." value="{{ keyword }}">
+
+        <select name="category">
+            <option value="all" {% if category =='all' %}selected{% endif %}>全部分类</option>
+            <option value="电子产品" {% if category =='电子产品' %}selected{% endif %}>电子产品</option>
+            <option value="书籍教材" {% if category =='书籍教材' %}selected{% endif %}>书籍教材</option>
+            <option value="生活用品" {% if category =='生活用品' %}selected{% endif %}>生活用品</option>
+            <option value="运动器材" {% if category =='运动器材' %}selected{% endif %}>运动器材</option>
+            <option value="服饰鞋包" {% if category =='服饰鞋包' %}selected{% endif %}>服饰鞋包</option>
+        </select>
+
+        <button type="submit">搜索</button>
+    </form>
+</div>
+
+
+<!-- 猜你喜欢 -->
+{% if recommend_items %}
+
+<div class="recommend-section">
+
+    <h2>猜你喜欢</h2>
+
+    <div class="items-grid">
+
+        {% for item in recommend_items %}
+
+            <div class="item-card">
+
+                <a href="{{ url_for('item_detail', item_id=item.id) }}">
+
+                    <img src="{{ url_for('static',
+                    filename='uploads/' + item.image_path) }}">
+
+                    <div class="item-info">
+
+                        <h3 class="item-title">
+                            {{ item.title }}
+                        </h3>
+
+                        <p class="item-price">
+                            ¥{{ item.price }}
+                        </p>
+
+                        <p class="item-seller">
+                            卖家：{{ item.seller_username }}
+                        </p>
+
+                    </div>
+
+                </a>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+
+<!-- 原商品列表 -->
+
+<h2 style="margin-top:30px;margin-bottom:20px">
+    全部商品
+</h2>
+
+<div class="items-grid">
+    {% if items %}
+
+        {% for item in items %}
+
+            <div class="item-card {% if item.is_top %}top-item{% endif %}">
+
+                <a href="{{ url_for('item_detail', item_id=item.id) }}">
+
+                    <img src="{{ url_for('static',
+                    filename='uploads/' + item.image_path) }}"
+                    alt="{{ item.title }}">
+
+                    <div class="item-info">
+
+                        <h3 class="item-title">
+
+                            {{ item.title }}
+
+                            {% if item.is_top %}
+                                <span class="top-badge">置顶</span>
+                            {% endif %}
+
+                        </h3>
+
+                        <p class="item-price">
+                            ¥{{ item.price }}
+                        </p>
+
+                        <p class="item-seller">
+                            卖家：{{ item.seller_username }}
+                        </p>
+
+                    </div>
+
+                </a>
+
+            </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <div class="no-items">
+            没有找到相关商品
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

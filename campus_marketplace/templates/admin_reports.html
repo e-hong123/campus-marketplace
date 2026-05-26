@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-layout">
+    <div class="admin-sidebar">
+        <ul>
+            <li><a href="{{ url_for('admin_items') }}">商品管理</a></li>
+            <li><a href="{{ url_for('admin_users') }}">用户管理</a></li>
+            <li><a href="{{ url_for('admin_reports_pending') }}" class="{% if type=='pending' %}active{% endif %}">待处理事项</a></li>
+            <li><a href="{{ url_for('admin_reports_handled') }}" class="{% if type=='handled' %}active{% endif %}">已处理事项</a></li>
+        </ul>
+    </div>
+    <div class="admin-content">
+        <h1>{% if type=='pending' %}待处理举报{% else %}已处理举报{% endif %}</h1>
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>商品</th>
+                    <th>举报人</th>
+                    <th>举报原因</th>
+                    <th>举报时间</th>
+                    {% if type=='pending' %}
+                        <th>操作</th>
+                        <th>处理原因</th>
+                    {% else %}
+                        <th>处理时间</th>
+                        <th>处理结果</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reports %}
+                <tr>
+                    <td><a href="{{ url_for('admin_item_detail', item_id=r.item_id) }}">{{ r.item.title }}</a></td>
+                    <td>{{ r.reporter.username }}</td>
+                    <td>{{ r.reason }}</td>
+                    <td>{{ r.report_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                    {% if type=='pending' %}
+                        <td>
+                            <select class="action-select" data-id="{{ r.id }}">
+                                <option value="shelf_off">下架商品</option>
+                                <option value="reject">驳回举报</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="reason-input" data-id="{{ r.id }}" placeholder="处理原因" required>
+                            <button class="btn-handle" data-id="{{ r.id }}">处理</button>
+                        </td>
+                    {% else %}
+                        <td>{{ r.handle_time.strftime('%Y-%m-%d %H:%M') if r.handle_time else '' }}</td>
+                        <td>{{ r.handle_result }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.admin-layout {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.admin-sidebar {
+    width: 240px;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+}
+.admin-sidebar ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+.admin-sidebar li {
+    margin-bottom: 0.5rem;
+}
+.admin-sidebar a {
+    display: block;
+    padding: 0.75rem 1rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+}
+.admin-sidebar a:hover {
+    background: #3498db;
+    color: white;
+}
+.admin-sidebar a.active {
+    background: #2c3e50;
+    color: white;
+}
+.admin-content {
+    flex: 1;
+    min-width: 0;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+.report-table th {
+    background-color: #2c3e50;
+    color: white;
+    padding: 12px 8px;
+    font-weight: bold;
+    text-align: center;
+    border: 1px solid #3e5a6c;
+}
+.report-table td {
+    border: 1px solid #ddd;
+    padding: 12px 8px;
+    text-align: center;
+    vertical-align: middle;
+}
+.report-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+.btn-handle {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 8px;
+}
+.btn-handle:hover {
+    background-color: #2980b9;
+}
+.action-select, .reason-input {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.reason-input {
+    width: 180px;
+}
+</style>
+
+<script>
+document.querySelector('.admin-content').addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-handle');
+    if (!btn) return;
+    const reportId = btn.getAttribute('data-id');
+    if (!reportId) {
+        alert('缺少举报ID');
+        return;
+    }
+    const row = btn.closest('tr');
+    const actionSelect = row.querySelector('.action-select');
+    const reasonInput = row.querySelector('.reason-input');
+    if (!actionSelect || !reasonInput) {
+        alert('表单元素不完整');
+        return;
+    }
+    const action = actionSelect.value;
+    const reason = reasonInput.value.trim();
+    if (!reason) {
+        alert('请填写处理原因');
+        return;
+    }
+    const fd = new FormData();
+    fd.append('action', action);
+    fd.append('reason', reason);
+    axios.post(`/admin/report/${reportId}/handle`, fd)
+        .then(res => {
+            if (res.data.success) {
+                alert(res.data.message);
+                location.reload();
+            } else {
+                alert(res.data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('操作失败：' + (err.response?.data?.message || err.message));
+        });
+});
+</script>
+{% endblock %}

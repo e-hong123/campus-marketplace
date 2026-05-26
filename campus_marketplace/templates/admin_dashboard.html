@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-layout">
+    <!-- 左侧边栏 -->
+    <div class="admin-sidebar">
+        <ul>
+            <li><a href="{{ url_for('admin_items') }}" class="{% if active == 'items' %}active{% endif %}">商品管理</a></li>
+            <li><a href="{{ url_for('admin_users') }}" class="{% if active == 'users' %}active{% endif %}">用户管理</a></li>
+            <li><a href="{{ url_for('admin_reports_pending') }}" class="{% if active == 'pending' %}active{% endif %}">待处理事项</a></li>
+            <li><a href="{{ url_for('admin_reports_handled') }}" class="{% if active == 'handled' %}active{% endif %}">已处理事项</a></li>
+        </ul>
+    </div>
+
+    <!-- 右侧内容区 -->
+    <div class="admin-content">
+        {% if active == 'items' %}
+            {% include 'admin_items_content.html' %}
+        {% elif active == 'users' %}
+            {% include 'admin_users_content.html' %}
+        {% elif active == 'pending' %}
+            {% include 'admin_reports_content.html' with context %}
+        {% elif active == 'handled' %}
+            {% include 'admin_reports_content.html' with context %}
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.admin-layout {
+    display: flex;
+    gap: 2rem;
+}
+.admin-sidebar {
+    width: 220px;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: fit-content;
+}
+.admin-sidebar ul {
+    list-style: none;
+}
+.admin-sidebar li {
+    margin-bottom: 0.5rem;
+}
+.admin-sidebar a {
+    display: block;
+    padding: 0.75rem 1rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+    transition: 0.2s;
+}
+.admin-sidebar a:hover {
+    background: #3498db;
+    color: white;
+}
+.admin-sidebar a.active {
+    background: #2c3e50;
+    color: white;
+}
+.admin-content {
+    flex: 1;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

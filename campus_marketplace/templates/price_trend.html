@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="trend-container">
+
+    <div class="trend-card">
+
+        <h1>
+            {{ category }} 价格走势分析
+        </h1>
+
+        <p class="trend-desc">
+            系统根据历史发布商品价格，
+            自动分析同类商品价格变化趋势。
+        </p>
+
+        <img
+            src="data:image/png;base64,{{ plot_url }}"
+            class="trend-image"
+        >
+
+    </div>
+
+</div>
+
+{% endblock %}

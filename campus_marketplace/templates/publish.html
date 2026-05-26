@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="publish-form">
+    <h2>发布商品</h2>
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>商品名称</label>
+            <input type="text" name="title" required>
+        </div>
+        <div class="form-group">
+            <label>商品描述</label>
+            <textarea name="description" rows="5" placeholder="介绍你的商品吧！如规格、成色、购买日期、使用情况等..." required></textarea>
+        </div>
+        <div class="form-group">
+            <label>价格（元）</label>
+            <input type="number" step="0.01" name="price" required>
+        </div>
+        <div class="form-group">
+            <label>商品分类</label>
+            <select name="category" required>
+                <option value="电子产品">电子产品</option>
+                <option value="书籍教材">书籍教材</option>
+                <option value="生活用品">生活用品</option>
+                <option value="运动器材">运动器材</option>
+                <option value="服饰鞋包">服饰鞋包</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>商品图片（最大5MB）</label>
+            <input type="file" name="image" accept="image/*" required>
+        </div>
+        <button type="submit" class="btn">发布商品</button>
+    </form>
+</div>
+{% endblock %}

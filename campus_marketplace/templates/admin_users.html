@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-layout">
+    <div class="admin-sidebar">
+        <ul>
+            <li><a href="{{ url_for('admin_items') }}">商品管理</a></li>
+            <li><a href="{{ url_for('admin_users') }}" class="active">用户管理</a></li>
+            <li><a href="{{ url_for('admin_reports_pending') }}">待处理事项</a></li>
+            <li><a href="{{ url_for('admin_reports_handled') }}">已处理事项</a></li>
+        </ul>
+    </div>
+    <div class="admin-content">
+        <h1>用户管理</h1>
+        <div class="users-list">
+            {% for user in users %}
+            <div class="user-row">
+                <a href="{{ url_for('admin_user_detail', user_id=user.id) }}">{{ user.username }}</a>
+                <span>注册时间：{{ user.create_time }}</span>
+            </div>
+            {% else %}
+            <p>暂无用户</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-layout { display: flex; gap: 2rem; }
+.admin-sidebar { width: 220px; background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.admin-sidebar ul { list-style: none; }
+.admin-sidebar li { margin-bottom: 0.5rem; }
+.admin-sidebar a { display: block; padding: 0.75rem 1rem; background: #f5f5f5; border-radius: 4px; text-decoration: none; color: #333; }
+.admin-sidebar a:hover { background: #3498db; color: white; }
+.admin-sidebar a.active { background: #2c3e50; color: white; }
+.admin-content { flex: 1; background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.user-row { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+</style>
+{% endblock %}
