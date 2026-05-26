@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="notifications-container">
+    <h1>通知中心</h1>
+    <div class="notifications-list">
+        {% for n in notifications %}
+        <div class="notification-card {% if not n.is_read %}unread{% endif %}"
+             data-detail="{{ n.detail or '' }}"
+             data-content="{{ n.content }}">
+            <div class="notification-content">{{ n.content }}</div>
+            <div class="notification-time">{{ n.create_time.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+        {% else %}
+        <div class="empty-state">暂无通知</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 弹窗模态框 -->
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>通知详情</h2>
+        <div id="modalDetailContent" style="white-space: pre-line;"></div>
+    </div>
+</div>
+
+<style>
+.notifications-container { max-width: 800px; margin: 0 auto; }
+.notifications-list { margin-top: 1.5rem; }
+.notification-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.notification-card.unread { background: #fff3cd; border-left: 4px solid #f39c12; }
+.notification-content { flex: 1; font-size: 0.95rem; color: #333; }
+.notification-time { font-size: 0.8rem; color: #999; white-space: nowrap; margin-left: 1rem; }
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+    position: relative;
+}
+.close {
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 28px;
+    cursor: pointer;
+}
+</style>
+
+<script>
+document.querySelectorAll('.notification-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+        const detail = this.dataset.detail;
+        if (detail && detail.trim() !== '') {
+            // 有详情，弹窗显示
+            showModal(detail);
+        } else {
+            // 没有详情，显示通知内容
+            showModal(this.dataset.content);
+        }
+    });
+});
+
+function showModal(text) {
+    const modal = document.getElementById('detailModal');
+    const modalContent = document.getElementById('modalDetailContent');
+    modalContent.innerText = text;
+    modal.style.display = 'block';
+}
+
+// 关闭弹窗
+document.querySelector('.close').onclick = function() {
+    document.getElementById('detailModal').style.display = 'none';
+}
+window.onclick = function(event) {
+    const modal = document.getElementById('detailModal');
+    if (event.target == modal) modal.style.display = 'none';
+}
+</script>
+{% endblock %}

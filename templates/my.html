@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="my-page">
+    <div class="sidebar">
+        <h2>个人中心</h2>
+        <ul>
+            <li class="{% if active_tab == 'profile' %}active{% endif %}">
+                <a href="{{ url_for('my_profile') }}"><i class="fas fa-user"></i> 个人信息</a>
+            </li>
+            <li class="{% if active_tab == 'items' %}active{% endif %}">
+                <a href="{{ url_for('my_items') }}"><i class="fas fa-box"></i> 我发布的商品</a>
+            </li>
+            <li class="{% if active_tab == 'orders' %}active{% endif %}">
+                <a href="{{ url_for('my_orders') }}"><i class="fas fa-shopping-bag"></i> 我购买的商品</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="content">
+        {% if active_tab == 'profile' %}
+            <div class="profile-section">
+                <h2>个人信息</h2>
+                <form id="profileForm">
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" value="{{ user.username }}" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>手机号</label>
+                        <input type="tel" name="phone" value="{{ user.phone }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>微信号</label>
+                        <input type="text" name="wechat" value="{{ user.wechat }}">
+                    </div>
+                    <div class="form-group">
+                        <label>QQ号</label>
+                        <input type="text" name="qq" value="{{ user.qq }}">
+                    </div>
+                    <button type="submit" class="btn">保存修改</button>
+                </form>
+            </div>
+
+        {% elif active_tab == 'items' %}
+            <div class="my-items-section">
+                <h2>我发布的商品</h2>
+                {% if items %}
+                    <div class="items-grid">
+                        {% for item in items %}
+                            {% if not item.is_sold %}
+                                <a href="{{ url_for('edit_item', item_id=item.id) }}" style="text-decoration: none; color: inherit;">
+                                    <div class="item-card">
+                                        <img src="{{ url_for('static', filename='uploads/' + item.image_path) }}" alt="{{ item.title }}">
+                                        <div class="item-info">
+                                            <h3 class="item-title">{{ item.title }}</h3>
+                                            <p class="item-price">¥{{ item.price }}</p>
+                                            <p class="item-status {% if not item.is_active %}sold{% else %}available{% endif %}">
+                                                {% if not item.is_active %}已下架{% else %}在售{% endif %}
+                                            </p>
+                                            <button class="btn btn-delete" onclick="event.preventDefault(); deleteItem({{ item.id }})">删除</button>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% else %}
+                                <div class="item-card">
+                                    <img src="{{ url_for('static', filename='uploads/' + item.image_path) }}" alt="{{ item.title }}">
+                                    <div class="item-info">
+                                        <h3 class="item-title">{{ item.title }}</h3>
+                                        <p class="item-price">¥{{ item.price }}</p>
+                                        <p class="item-status sold">已售出</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p>你还没有发布任何商品</p>
+                        <a href="{{ url_for('publish') }}" class="btn">发布商品</a>
+                    </div>
+                {% endif %}
+            </div>
+
+        {% elif active_tab == 'orders' %}
+            <div class="my-orders-section">
+                <h2>我购买的商品</h2>
+                {% if orders %}
+                    <div class="orders-list">
+                        {% for order in orders %}
+                            <div class="order-item">
+                                <img src="{{ url_for('static', filename='uploads/' + order.item_image) }}" alt="{{ order.item_title }}">
+                                <div class="order-info">
+                                    <h3>{{ order.item_title }}</h3>
+                                    <p>价格：¥{{ order.price }}</p>
+                                    <p>卖家：{{ order.seller_username }}</p>
+                                    <p>下单时间：{{ order.order_time }}</p>
+                                    <p class="order-status">{{ order.status }}</p>
+                                </div>
+                                {% if order.status == '待发货' %}
+                                    <div class="order-actions">
+                                        <button class="btn btn-cancel" onclick="cancelOrder({{ order.id }})">取消购买</button>
+                                        <button class="btn btn-confirm" onclick="confirmReceipt({{ order.id }})">确认收货</button>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p>你还没有购买任何商品</p>
+                        <a href="{{ url_for('index') }}" class="btn">去逛逛</a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if active_tab == 'profile' %}
+document.getElementById('profileForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    axios.post('/update_profile', formData)
+        .then(response => {
+            alert(response.data.message);
+            if (response.data.success) window.location.reload();
+        })
+        .catch(error => {
+            alert('更新失败，请稍后重试');
+        });
+});
+{% endif %}
+
+{% if active_tab == 'items' %}
+function deleteItem(itemId) {
+    if (confirm('确定要删除这件商品吗？删除后无法恢复！')) {
+        axios.post(`/delete_item/${itemId}`)
+            .then(response => {
+                if (response.data.success) {
+                    alert(response.data.message);
+                    window.location.reload();  // 成功才刷新
+                } else {
+                    alert(response.data.message);
+                }
+            })
+            .catch(error => {
+                alert('删除失败，请稍后重试');
+            });
+    }
+}
+{% endif %}
+
+{% if active_tab == 'orders' %}
+function cancelOrder(orderId) {
+    if (confirm('确定要取消这个订单吗？')) {
+        axios.post(`/cancel_order/${orderId}`)
+            .then(response => {
+                alert(response.data.message);
+                if (response.data.success) window.location.reload();
+            })
+            .catch(error => {
+                alert('取消失败，请稍后重试');
+            });
+    }
+}
+
+function confirmReceipt(orderId) {
+    if (confirm('确定已经收到商品了吗？')) {
+        axios.post(`/confirm_receipt/${orderId}`)
+            .then(response => {
+                alert(response.data.message);
+                if (response.data.success) window.location.reload();
+            })
+            .catch(error => {
+                alert('确认失败，请稍后重试');
+            });
+    }
+}
+{% endif %}
+</script>
+{% endblock %}

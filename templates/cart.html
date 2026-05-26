@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="cart-page">
+    <h1>我的购物车</h1>
+    
+    {% if items %}
+        <div class="cart-items">
+            {% for item in items %}
+                <div class="cart-item">
+                    <img src="{{ url_for('static', filename='uploads/' + item.image_path) }}" alt="{{ item.title }}">
+                    <div class="cart-item-info">
+                        <h3>{{ item.title }}</h3>
+                        <p class="price">¥{{ item.price }}</p>
+                        <p>卖家：{{ item.seller_username }}</p>
+                    </div>
+                    <div class="cart-item-actions">
+                        <button class="btn btn-buy" onclick="buyNow({{ item.id }})">立即购买</button>
+                        <button class="btn btn-remove" onclick="removeFromCart({{ item.cart_id }})">移除</button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="cart-summary">
+            <p>共 {{ items|length }} 件商品，总计：<span class="total-price">¥{{ total_price }}</span></p>
+        </div>
+    {% else %}
+        <div class="empty-cart">
+            <i class="fas fa-shopping-cart"></i>
+            <p>购物车是空的</p>
+            <a href="{{ url_for('index') }}" class="btn">去逛逛</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function removeFromCart(cartId) {
+    if (confirm('确定要从购物车移除这件商品吗？')) {
+        axios.post(`/remove_from_cart/${cartId}`)
+            .then(response => {
+                alert(response.data.message);
+                if (response.data.success) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                alert('操作失败，请稍后重试');
+            });
+    }
+}
+
+function buyNow(itemId) {
+    if (confirm('确定要购买这件商品吗？')) {
+        axios.post(`/buy_now/${itemId}`)
+            .then(response => {
+                alert(response.data.message);
+                if (response.data.success) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                alert('操作失败，请稍后重试');
+            });
+    }
+}
+</script>
+{% endblock %}

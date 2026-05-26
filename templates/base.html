@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园二手交易平台</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏必须完整 -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="logo">校园二手市场</a>
+            <div class="nav-links">
+                {% if session.user_id %}
+                    <span class="welcome-text">欢迎，{{ session.username }}</span>
+                    {% if not session.get('is_admin') %}
+                        <!-- 普通用户菜单 -->
+                        <a href="{{ url_for('index') }}">首页</a>
+                        <a href="{{ url_for('publish') }}">发布商品</a>
+                        <a href="{{ url_for('my_profile') }}">我的</a>
+                        <a href="{{ url_for('my_notifications') }}" class="notif-icon">
+                            <i class="fas fa-bell"></i>
+                            {% if notif_count > 0 %}
+                                <span class="notif-badge">{{ notif_count }}</span>
+                            {% endif %}
+                        </a>
+                    {% else %}
+                        <!-- 管理员菜单 -->
+                        <a href="{{ url_for('admin_dashboard') }}">管理后台</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}">退出</a>
+                {% else %}
+                    <a href="{{ url_for('index') }}">首页</a>
+                    <a href="{{ url_for('login') }}">登录</a>
+                    <a href="{{ url_for('register') }}">注册</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- 全局购物车图标（管理员不显示购物车） -->
+    {% if request.path != '/cart' and not request.path.startswith('/my') and not session.get('is_admin') %}
+        <a href="{{ url_for('cart') }}" class="cart-float">
+            <i class="fas fa-shopping-cart"></i>
+            {% if cart_count > 0 %}
+                <span class="cart-badge">{{ cart_count }}</span>
+            {% endif %}
+        </a>
+    {% endif %}
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    {% block scripts %}{% endblock %}
+
+<script>
+    // 自动隐藏 flash 消息（登录、操作提示等）
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(function(msg) {
+            setTimeout(function() {
+                // 添加淡出效果
+                msg.style.transition = 'opacity 0.5s ease';
+                msg.style.opacity = '0';
+                // 淡出后移除元素
+                setTimeout(function() {
+                    if (msg.parentNode) msg.remove();
+                }, 500);
+            }, 2000);  // 3秒后开始淡出
+        });
+    });
+</script>
+</body>
+</html>
